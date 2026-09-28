@@ -76,6 +76,34 @@ See [`/screenshots`](./screenshots) for verification evidence, including:
 
 This build mirrors the identity lifecycle and access governance patterns used in production IAM: centralized authentication, role-based (not per-user) access grants, split DNS, and policy enforced once at the domain level rather than per-machine. It was built independently, outside of assigned work duties, to reinforce architecture-level understanding of how these systems fit together.
 
+## Troubleshooting: DFSREvent Failure (DFSR / IPv6)
+
+During initial `dcdiag` verification, the `DFSREvent` test failed while every other test passed:
+
+```
+Starting test: DFSREvent
+   There are warning or error events within the last 24 hours after the SYSVOL has been shared.
+   Failing SYSVOL replication problems may cause Group Policy problems.
+   ......................... DC01 failed test DFSREvent
+```
+
+**Diagnosis**
+
+- Checked `Event Viewer → Applications and Services Logs → DFS Replication` and found two errors logged at the time of domain promotion:
+  - **Event ID 1202** — DFS Replication service failed to contact a domain controller for configuration information, with the specific sub-error **1355** ("the specified domain either does not exist or could not be contacted").
+  - **Event ID 6104** — DFS Replication service failed to register its WMI provider.
+- Ran `nslookup dc01.lab.local` and found the DC was resolving to *multiple* addresses — its correct static IPv4 (`10.0.0.50`), plus two public, globally-routable **IPv6** addresses auto-assigned via SLAAC from the home router. Bridged networking puts the VM directly on the LAN with no NAT layer, so IPv6 auto-configuration registered the DC under its real public IPv6 addresses in addition to its intended private IPv4 address.
+- Concluded that DFSR was intermittently attempting to reach the DC over IPv6 during its own startup checks, producing the 1355 "domain could not be contacted" error, since IPv6 wasn't an intentional part of this network's design.
+
+**Fix**
+
+- Disabled IPv6 on the DC's network adapter (`Network Connections → Adapter Properties → uncheck Internet Protocol Version 6`).
+- Restarted the Netlogon and DFSR services and flushed DNS.
+- Confirmed `nslookup dc01.lab.local` now resolves to only the intended static IPv4 address.
+- Confirmed via Event Viewer that all DFS Replication events *after* the fix were Information-level (event IDs 1206, 1210, 6102 — successful join, connection, and polling events), with no further warnings or errors.
+
+**Result:** `dcdiag`'s `DFSREvent` test looks back 24 hours, so it continued to report the original startup errors until they aged out of that window — but no new errors occurred after the fix, confirming the root cause was resolved rather than masked.
+
 ## Coming Next (Part 2)
 
 - Add a Windows client VM
