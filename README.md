@@ -64,13 +64,49 @@ Get-DnsServerForwarder
 dcdiag
 ```
 
-See [`/screenshots`](./screenshots) for verification evidence, including:
-- `ipconfig /all` showing static IP, gateway, and self-referencing DNS
-- `dcdiag` with all tests passing
-- Domain login screen (`LAB\Administrator`)
-- `nslookup google.com` resolving successfully through the forwarder
-- ADUC showing the `Users` and `Groups` OUs, group membership, and user objects
-- Group Policy password policy settings
+### Network Configuration
+
+**`ipconfig /all`** — static IP, gateway, and self-referencing DNS
+![ipconfig output](./screenshots/ipconfig-static-ip-dns.png)
+
+**`nslookup google.com`** — external DNS resolving through the forwarder
+![nslookup google.com](./screenshots/nslookup-google.png)
+
+**`nslookup dc01.lab.local`** — resolving to a single IPv4 address after the IPv6 fix (see Troubleshooting below)
+![nslookup dc01.lab.local](./screenshots/nslookup-dc01-ipv6-disabled.png)
+
+### Domain Controller Health
+
+**`dcdiag`** — full diagnostic output
+![dcdiag output](./screenshots/dcdiag-output.png)
+
+**Domain login screen** — `LAB\Administrator`
+![Domain login screen](./screenshots/login-lab-administrator.png)
+
+### Identity & Access (RBAC)
+
+**PowerShell verification** — `Get-ADUser`, `Get-ADGroupMember`
+![PowerShell AD verification](./screenshots/powershell-aduser-adgroupmember.png)
+
+**ADUC** — `Users` and `Groups` OUs
+![ADUC OU tree](./screenshots/aduc-tree-ous.png)
+
+**`Users` OU** — `jdoe`, `asmith`
+![Users OU](./screenshots/users-ou-members.png)
+
+**`Groups` OU** — `HR-Team`, `IT-Helpdesk`
+![Groups OU](./screenshots/groups-ou-members.png)
+
+**HR-Team members** — `jdoe`
+![HR-Team members](./screenshots/hrteam-members.png)
+
+**IT-Helpdesk members** — `asmith`
+![IT-Helpdesk members](./screenshots/ithelpdesk-members.png)
+
+### Security Policy
+
+**Group Policy** — password policy (min length 12, complexity enabled)
+![Password policy GPO](./screenshots/password-policy-gpo.png)
 
 ## Why This Matters
 
@@ -111,6 +147,9 @@ Starting test: DFSREvent
 - Join it to the `lab.local` domain
 - Log in as a domain user (`jdoe` / `asmith`) to validate the full identity chain from directory to endpoint
 
+---
+
+*Built as a hands-on lab to strengthen practical Active Directory / IAM skills. Sensitive details (passwords, real IP ranges) have been redacted or generalized in all screenshots.*
 ---
 
 *Built as a hands-on lab to strengthen practical Active Directory / IAM skills. Sensitive details (passwords, real IP ranges) have been redacted or generalized in all screenshots.*
